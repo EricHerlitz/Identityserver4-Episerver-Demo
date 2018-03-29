@@ -15,20 +15,20 @@ namespace IdEpi.IdentityServer
         {
             return new ApiResource[]
             {
-                new ApiResource()
-                {
-                    Name = "api1",
-                    DisplayName = "My API",
-                    Scopes =
-                    {
-                        new Scope
-                        {
-                            Name = "api1",
-                            DisplayName = "My API",
-                        }
-                    }
-                },
-                new ApiResource("api2", "My API"),
+                //new ApiResource()
+                //{
+                //    Name = "api1",
+                //    DisplayName = "My API",
+                //    Scopes =
+                //    {
+                //        new Scope
+                //        {
+                //            Name = "api1",
+                //            DisplayName = "My API",
+                //        },
+                //    }
+                //},
+                new ApiResource("api1", "My API"),
             };
         }
 
@@ -81,13 +81,15 @@ namespace IdEpi.IdentityServer
                     AllowAccessTokensViaBrowser = true,
                     RedirectUris = { "http://localhost:5020/signin-oidc" },
                     PostLogoutRedirectUris = { "http://localhost:5020/signout-callback-oidc" },
-                    AllowedGrantTypes = GrantTypes.Implicit,
+                    AllowedGrantTypes = GrantTypes.HybridAndClientCredentials,
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         "api1"
-                    }
+                    },
+                    // offline_access scope - this allows requesting refresh tokens for long lived API access
+                    AllowOfflineAccess = true
                 },
             };
         }

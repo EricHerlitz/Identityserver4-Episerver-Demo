@@ -25,20 +25,28 @@ namespace IdEpi.WebClient
             services.AddAuthentication(options =>
                 {
                     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme; // "Cookies"
-                    options.DefaultChallengeScheme = "oidc"; // OpenIdConnectDefaults.AuthenticationScheme
+                    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme; // OpenIdConnectDefaults.AuthenticationScheme
                 })
-                .AddCookie("Cookies") // 
-                .AddOpenIdConnect("oidc", options =>
+                .AddCookie("Cookies", options =>
+                {
+                })
+                .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
                     options.SignInScheme = "Cookies";
 
                     options.Authority = "http://localhost:5000";
                     options.RequireHttpsMetadata = false;
+                    
 
                     options.ClientId = "webclient";
                     options.ClientSecret = "secret";
-                    //options.GetClaimsFromUserInfoEndpoint = true;
+                    options.ResponseType = "code id_token";
+                    options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
+
+                    options.Scope.Add("api1");
+                    //options.Scope.Add("openid");
+                    options.Scope.Add("offline_access");
                 });
         }
 
@@ -57,6 +65,7 @@ namespace IdEpi.WebClient
             app.UseAuthentication();
 
             app.UseStaticFiles();
+
             app.UseMvcWithDefaultRoute();
         }
     }
