@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IdEpi.WebClient
@@ -40,13 +35,14 @@ namespace IdEpi.WebClient
 
                     options.ClientId = "webclient";
                     options.ClientSecret = "secret";
-                    options.ResponseType = "code id_token";
+                    options.ResponseType = "code id_token"; // Hybrid flow
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = true;
 
                     options.Scope.Add("api1");
                     //options.Scope.Add("openid");
                     options.Scope.Add("offline_access");
+                    //options.Events = new OpenIdConnectEvents { };
                 });
         }
 

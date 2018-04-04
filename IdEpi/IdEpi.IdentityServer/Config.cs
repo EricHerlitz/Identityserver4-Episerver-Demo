@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using IdentityModel;
 using IdentityServer4;
 using IdentityServer4.Models;
 using IdentityServer4.Test;
@@ -28,7 +29,16 @@ namespace IdEpi.IdentityServer
                 //        },
                 //    }
                 //},
-                new ApiResource("api1", "My API"),
+                new ApiResource("api1", "My API")
+                {
+                    UserClaims =
+                    {
+                        JwtClaimTypes.Role,
+                        JwtClaimTypes.Email,
+                        ClaimTypes.Country,
+                        ClaimTypes.Role
+                    }
+                },
             };
         }
 
@@ -36,8 +46,32 @@ namespace IdEpi.IdentityServer
         {
             return new IdentityResource[]
             {
-                new IdentityResources.OpenId(),
+                new IdentityResources.OpenId()
+                {
+                    // https://msdn.microsoft.com/en-us/library/microsoft.identitymodel.claims.claimtypes_members.aspx
+                    UserClaims =
+                    {
+                        JwtClaimTypes.PreferredUserName,
+                        JwtClaimTypes.Role,
+                        JwtClaimTypes.Email,
+                        ClaimTypes.Upn, // username
+                        ClaimTypes.Country,
+                        ClaimTypes.GroupSid,
+                        ClaimTypes.Role
+                    }
+                },
                 new IdentityResources.Profile(),
+                new IdentityResources.Email(),
+                new IdentityResource
+                {
+                    Name = JwtClaimTypes.Role,
+                    DisplayName = "Role",
+                    Description = "Allow the service access to your user roles.",
+                    UserClaims = new[] { JwtClaimTypes.Role, ClaimTypes.Role },
+                    ShowInDiscoveryDocument = true,
+                    Required = true,
+                    Emphasize = true
+                }
             };
         }
 
@@ -62,8 +96,10 @@ namespace IdEpi.IdentityServer
                 {
                     ClientId = "ro.client",
                     //ClientName = "Console App",
-                    AllowedGrantTypes = GrantTypes.ResourceOwnerPassword,
+                    AllowedGrantTypes = GrantTypes.ResourceOwnerPasswordAndClientCredentials,
                     ClientSecrets = new List<Secret> { new Secret("secret".Sha256()) },
+                    //AlwaysSendClientClaims = true,
+                    //AlwaysIncludeUserClaimsInIdToken = true,
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
@@ -79,17 +115,32 @@ namespace IdEpi.IdentityServer
                     //ClientUri = "http://localhost:5020",
                     RequireConsent = false,
                     AllowAccessTokensViaBrowser = true,
-                    RedirectUris = { "http://localhost:5020/signin-oidc" },
-                    PostLogoutRedirectUris = { "http://localhost:5020/signout-callback-oidc" },
+                    AlwaysIncludeUserClaimsInIdToken = true,
+                    RedirectUris =
+                    {
+                        "http://localhost:5020/signin-oidc",
+                        "http://localhost:5030/",
+                        "http://localhost:5030/episerver",
+                        "http://localhost:5030/login",
+                    },
+                    PostLogoutRedirectUris =
+                    {
+                        "http://localhost:5020/signout-callback-oidc",
+                        "http://localhost:5030/"
+                    },
                     AllowedGrantTypes = GrantTypes.HybridAndClientCredentials,
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        IdentityServerConstants.StandardScopes.OfflineAccess,
+                        JwtClaimTypes.Role,
                         "api1"
                     },
                     // offline_access scope - this allows requesting refresh tokens for long lived API access
-                    AllowOfflineAccess = true
+                    AllowOfflineAccess = true,
+                    AlwaysSendClientClaims = true
                 },
             };
         }
@@ -105,9 +156,16 @@ namespace IdEpi.IdentityServer
                     Password = "pass",
                     Claims =
                     {
-                        new Claim("name", "alice"),
-                        new Claim("website", "https://alice.com")
-                    }
+                        new Claim(JwtClaimTypes.PreferredUserName, "alice"),
+                        new Claim(ClaimTypes.Upn, "alice"),
+                        new Claim(ClaimTypes.Country, "Sweden"),
+                        new Claim(JwtClaimTypes.Name, "alice"),
+                        new Claim(JwtClaimTypes.Email, "alice@gmail.com"),
+                        new Claim(JwtClaimTypes.EmailVerified, "true", ClaimValueTypes.Boolean),
+                        //new Claim(JwtClaimTypes.Role, "WebEditors"),
+                        new Claim(ClaimTypes.Role, "WebEditors"),
+                        new Claim(JwtClaimTypes.WebSite, "https://alice.se")
+                    },
                 },
                 new TestUser
                 {
@@ -115,6 +173,18 @@ namespace IdEpi.IdentityServer
                     Username = "bob",
                     Password = "pass"
                 }
+            };
+        }
+
+        public static IEnumerable<string> GetScopes()
+        {
+            return new[]
+            {
+                IdentityServerConstants.StandardScopes.OpenId,
+                IdentityServerConstants.StandardScopes.Profile,
+                IdentityServerConstants.StandardScopes.Email,
+                IdentityServerConstants.StandardScopes.Address,
+                IdentityServerConstants.StandardScopes.OfflineAccess
             };
         }
 

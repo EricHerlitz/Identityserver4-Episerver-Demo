@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using IdentityServer4.AccessTokenValidation;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -58,8 +59,31 @@ namespace IdEpi.Api
                     options.RequireHttpsMetadata = false;
                     options.ApiName = "api1";
                     options.ApiSecret = "secret";
-                    options.EnableCaching = true;
+                    options.EnableCaching = false;
                 });
+            //services.AddAuthentication(options =>
+            //    {
+            //        options.DefaultScheme = IdentityServerAuthenticationDefaults.AuthenticationScheme; // "Bearer"
+            //        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme; // OpenIdConnectDefaults.AuthenticationScheme
+            //    }) //"Bearer"
+            //    .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+            //    {
+            //        options.SignInScheme = "Cookies";
+
+            //        options.Authority = "http://localhost:5000";
+            //        options.RequireHttpsMetadata = false;
+
+
+            //        options.ClientId = "webclient";
+            //        options.ClientSecret = "secret";
+            //        options.ResponseType = "code id_token"; // Hybrid flow
+            //        options.GetClaimsFromUserInfoEndpoint = true;
+            //        options.SaveTokens = true;
+
+            //        options.Scope.Add("api1");
+            //        //options.Scope.Add("openid");
+            //        options.Scope.Add("offline_access");
+            //    });
             //.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
             //{
             //    options.SignInScheme = "Cookies";

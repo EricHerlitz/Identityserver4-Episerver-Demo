@@ -1,9 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using IdentityModel.Client;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace IdEpi.ConsoleApp
@@ -23,7 +25,43 @@ namespace IdEpi.ConsoleApp
 
             //await GetTokenAsync();
 
+            //await UseTokenAsync();
+
             await GetRoTokenAsync();
+
+        }
+
+        private static async Task UseTokenAsync()
+        {
+            Console.SetIn(new StreamReader(Console.OpenStandardInput(),
+                Console.InputEncoding,
+                false,
+                bufferSize: 1024));
+
+            Console.WriteLine("Enter token or press enter: ");
+            var accessToken = Console.ReadLine();
+
+            
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                var client = new HttpClient();
+                client.SetBearerToken(accessToken);
+
+                var response = await client.GetAsync("http://localhost:5010/identity");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("response.StatusCode");
+                    Console.WriteLine(response.StatusCode);
+                }
+                else
+                {
+                    var content = response.Content.ReadAsStringAsync().Result;
+                    Console.WriteLine("API response.Content");
+                    Console.WriteLine(content);
+                    //Console.WriteLine(JArray.Parse(content));
+                }
+            }
 
         }
 
@@ -78,7 +116,7 @@ namespace IdEpi.ConsoleApp
             // request token
             var tokenClient = new TokenClient(disco.TokenEndpoint, "ro.client", clientSecret);
             var tokenResponse = await tokenClient.RequestResourceOwnerPasswordAsync("alice", "pass", "api1 openid profile");
-
+            
             if (tokenResponse.IsError)
             {
                 Console.WriteLine(tokenResponse.Error);
@@ -115,7 +153,11 @@ namespace IdEpi.ConsoleApp
             {
                 var content = response.Content.ReadAsStringAsync().Result;
                 Console.WriteLine("API response.Content");
-                Console.WriteLine(JArray.Parse(content));
+                Console.WriteLine(content);
+
+                var a = JsonConvert.DeserializeObject<object>(content);
+                Console.WriteLine(a);
+                //Console.WriteLine(JArray.Parse(content));
             }
         }
     }

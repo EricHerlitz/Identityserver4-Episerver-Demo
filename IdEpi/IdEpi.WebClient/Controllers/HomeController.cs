@@ -1,14 +1,13 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using IdentityModel.Client;
 
 namespace IdEpi.WebClient.Controllers
 {
@@ -20,9 +19,28 @@ namespace IdEpi.WebClient.Controllers
         }
 
         [Authorize]
-        public IActionResult Secure()
+        public async Task<IActionResult> Secure()
         {
             ViewData["Message"] = "Secure page.";
+
+            Console.WriteLine("----------------------------");
+
+            Console.WriteLine("User Claims");
+            User.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
+
+            var accessToken = await HttpContext.GetTokenAsync(tokenName: "access_token");
+
+            //var client = new HttpClient();
+            //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var disco = await DiscoveryClient.GetAsync("http://localhost:5000");
+            var userInfo = new UserInfoClient(disco.UserInfoEndpoint);
+            var userInfoResponse = await userInfo.GetAsync(accessToken);
+
+            Console.WriteLine("userInfoResponse Claims");
+            userInfoResponse.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
+
+            Console.WriteLine("----------------------------");
 
             return View();
         }
@@ -60,7 +78,9 @@ namespace IdEpi.WebClient.Controllers
 
             // call api
             var client = new HttpClient();
-            client.SetBearerToken(accessToken);
+            //client.SetBearerToken(accessToken); // if IdentityModel is installed
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
 
             var response = await client.GetAsync("http://localhost:5010/identity");
             if (!response.IsSuccessStatusCode)
@@ -72,7 +92,8 @@ namespace IdEpi.WebClient.Controllers
             {
                 var content = response.Content.ReadAsStringAsync().Result;
                 Console.WriteLine("API response.Content");
-                Console.WriteLine(JArray.Parse(content));
+                //Console.WriteLine(JArray.Parse(content));
+                ViewData["Content"] = content;
             }
 
 

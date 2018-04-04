@@ -2,9 +2,7 @@
     ViewData["Title"] = "Secure";
 }
 <h2>@ViewData["Title"]</h2>
-
 <h3>User claims</h3>
-
 <dl>
     @foreach (var claim in User.Claims)
     {
@@ -12,6 +10,16 @@
         <dd>@claim.Value</dd>
 
     }
+
 </dl>
 
+<h3>Properties</h3>
+<dl>
+    <dt>IsAuthenticated: </dt>
+    <dd>@User.Identity.IsAuthenticated</dd>
+    <dt>AuthenticationType: </dt>
+    <dd>@User.Identity.AuthenticationType</dd>
+    <dt>IsInRole WebEditors: </dt>
+    <dd>@User.IsInRole("WebEditors")</dd>
+</dl>
 
