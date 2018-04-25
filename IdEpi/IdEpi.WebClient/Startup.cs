@@ -32,7 +32,6 @@ namespace IdEpi.WebClient
                     options.Authority = "http://localhost:5000";
                     options.RequireHttpsMetadata = false;
                     
-
                     options.ClientId = "webclient";
                     options.ClientSecret = "secret";
                     options.ResponseType = "code id_token"; // Hybrid flow

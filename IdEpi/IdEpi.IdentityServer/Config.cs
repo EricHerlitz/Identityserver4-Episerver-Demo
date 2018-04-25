@@ -151,7 +151,7 @@ namespace IdEpi.IdentityServer
             {
                 new TestUser
                 {
-                    SubjectId = "1",
+                    SubjectId = "Alice Alice",
                     Username = "alice",
                     Password = "pass",
                     Claims =
@@ -162,8 +162,9 @@ namespace IdEpi.IdentityServer
                         new Claim(JwtClaimTypes.Name, "alice"),
                         new Claim(JwtClaimTypes.Email, "alice@gmail.com"),
                         new Claim(JwtClaimTypes.EmailVerified, "true", ClaimValueTypes.Boolean),
-                        //new Claim(JwtClaimTypes.Role, "WebEditors"),
+                        //new Claim(JwtClaimTypes.Role, "WebEditors, WebAdmins"),
                         new Claim(ClaimTypes.Role, "WebEditors"),
+                        new Claim(ClaimTypes.Role, "WebAdmins"),
                         new Claim(JwtClaimTypes.WebSite, "https://alice.se")
                     },
                 },

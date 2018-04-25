@@ -63,7 +63,7 @@ namespace IdEpi.WebEpiserver.Business.Owin
                 },
 
                 UseTokenLifetime = false,
-
+                
                 // Notifications is events in netcore
                 // https://github.com/IdentityServer/IdentityServer3/issues/2457
                 Notifications = new OpenIdConnectAuthenticationNotifications

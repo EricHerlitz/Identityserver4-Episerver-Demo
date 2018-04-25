@@ -13,7 +13,10 @@ namespace IdEpi.Api.Controllers
     [Authorize]
     public class IdentityController : ControllerBase
     {
+        const string authority = "http://10.11.12.13:5000";
+
         [HttpGet]
+        //[Authorize(Roles = "WebEditors")]
         public async Task<IActionResult> Get()
         {
             Console.WriteLine("User Claims");
@@ -26,7 +29,13 @@ namespace IdEpi.Api.Controllers
                 claim.Value
             });
 
-            var disco = await DiscoveryClient.GetAsync("http://localhost:5000");
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
+            {
+                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            };
+
+            DiscoveryResponse disco = await discoInstance.GetAsync();
+
             var accessToken = await HttpContext.GetTokenAsync(tokenName: "access_token");
 
 

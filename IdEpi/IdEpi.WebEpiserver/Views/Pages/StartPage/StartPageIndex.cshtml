@@ -7,3 +7,17 @@
 
 <h1>Hello world!</h1>
 <p>@Model.TestProp</p>
+
+@if (Model.Claims != null)
+{
+    <dl>
+        @foreach (var claim in Model.Claims)
+        {
+            <dt>@claim.Type</dt>
+            <dd>@claim.Value</dd>
+
+        }
+
+    </dl>
+}
+

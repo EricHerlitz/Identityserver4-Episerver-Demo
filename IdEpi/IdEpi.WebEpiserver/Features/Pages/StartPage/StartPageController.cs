@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Web.Mvc;
 using EPiServer;
 using EPiServer.Core;
@@ -20,9 +21,17 @@ namespace IdEpi.WebEpiserver.Features.Pages.Start
         //[Authorize]
         public ActionResult Index(StartPage currentPage)
         {
+            List<Claim> claims = null;
+            if (User.Identity.IsAuthenticated)
+            {
+                ClaimsIdentity identity = (ClaimsIdentity)User.Identity;
+                claims = identity.Claims.ToList();
+            }
+
             var viewModel = new StartPageViewModel(currentPage)
             {
-                TestProp = _contentLoader.Get<PageData>(ContentReference.RootPage).Name
+                TestProp = _contentLoader.Get<PageData>(ContentReference.RootPage).Name,
+                Claims = claims
             };
 
             return View(viewModel);

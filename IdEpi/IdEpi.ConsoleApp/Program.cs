@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -12,43 +13,94 @@ namespace IdEpi.ConsoleApp
 {
     class Program
     {
-        const string authority = "http://localhost:5000";
+        const string authority = "http://10.11.12.13:5000";
         const string clientSecret = "secret";
         const string scope = "api1";
-        const string apiUrl = "http://localhost:5010/identity";
+        const string apiUrl = "http://10.11.12.13:5010/identity";
+        private static string _token = null;
+
 
         static void Main(string[] args) => MainAsync().GetAwaiter().GetResult();
 
         public static async Task MainAsync()
         {
-            Console.Title = "Console Client";
-
-            //await GetTokenAsync();
-
-            //await UseTokenAsync();
-
-            await GetRoTokenAsync();
-
+            ConfigureConsole();
+            await Run();
         }
 
-        private static async Task UseTokenAsync()
+        private static async Task Run()
         {
-            Console.SetIn(new StreamReader(Console.OpenStandardInput(),
-                Console.InputEncoding,
-                false,
-                bufferSize: 1024));
+            Console.WriteLine("===========================");
+            Console.WriteLine("1: Get Token");
+            Console.WriteLine("2: Get Resource Owner token");
+            Console.WriteLine("3: Use existing token with Web API");
+            Console.WriteLine("4: Print stored token");
+            Console.WriteLine("9: Exit");
+            Console.WriteLine("===========================");
+            Console.WriteLine();
 
-            Console.WriteLine("Enter token or press enter: ");
-            var accessToken = Console.ReadLine();
+            var key = Console.ReadKey(true);
 
-            
+            switch (key.KeyChar.ToString())
+            {
+                case "1":
+                    await GetTokenAsync();
+                    break;
 
-            if (!string.IsNullOrEmpty(accessToken))
+                case "2":
+                    await GetRoTokenAsync();
+                    break;
+
+                case "3":
+                    await UseTokenWithWebApiAsync();
+                    break;
+
+                case "4":
+                    Console.WriteLine(string.IsNullOrEmpty(_token) ? "No token in store" : _token);
+                    break;
+
+                case "9":
+                default:
+                    return;
+            }
+
+            Console.WriteLine();
+            await Run();
+        }
+
+        private static void ConfigureConsole()
+        {
+            Console.Title = $"Console Client {Process.GetCurrentProcess().Id}";
+            Console.SetIn(new StreamReader(Console.OpenStandardInput(), Console.InputEncoding, false, bufferSize: 2048));
+        }
+
+        /// <summary>
+        /// Use existing token with Web API
+        /// This uses a HttpClient
+        /// </summary>
+        /// <returns></returns>
+        private static async Task UseTokenWithWebApiAsync()
+        {
+            if (string.IsNullOrEmpty(_token))
+            {
+                Console.WriteLine("Enter token: ");
+                _token = Console.ReadLine();
+            }
+            else
+            {
+                Console.WriteLine("Enter token or press enter to use existing: ");
+                var readLineToken = Console.ReadLine();
+                _token = string.IsNullOrEmpty(readLineToken) ? _token : readLineToken;
+            }
+
+            if (!string.IsNullOrEmpty(_token))
             {
                 var client = new HttpClient();
-                client.SetBearerToken(accessToken);
+                client.SetBearerToken(_token);
 
-                var response = await client.GetAsync("http://localhost:5010/identity");
+                // Get response from Web API
+                var response = await client.GetAsync(apiUrl);
+
                 if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("response.StatusCode");
@@ -57,17 +109,26 @@ namespace IdEpi.ConsoleApp
                 else
                 {
                     var content = response.Content.ReadAsStringAsync().Result;
-                    Console.WriteLine("API response.Content");
-                    Console.WriteLine(content);
-                    //Console.WriteLine(JArray.Parse(content));
+                    Console.WriteLine(JsonConvert.DeserializeObject(content));
                 }
+            }
+            else
+            {
+                Console.WriteLine("No token entered");
             }
 
         }
 
+
         private static async Task GetTokenAsync()
         {
-            var disco = await DiscoveryClient.GetAsync(authority);
+            // Get DiscoveryClient from IdentityServer using IdentityModel
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
+            {
+                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            };
+
+            DiscoveryResponse disco = await discoInstance.GetAsync();
 
             if (disco.IsError)
             {
@@ -75,8 +136,9 @@ namespace IdEpi.ConsoleApp
                 return;
             }
 
-            var tokenClient = new TokenClient(disco.TokenEndpoint, "client", clientSecret);
-            var tokenResponse = await tokenClient.RequestClientCredentialsAsync(scope);
+            // TokenClient from IdentityModel
+            var tokenClient = new TokenClient(address: disco.TokenEndpoint, clientId: "client", clientSecret: clientSecret);
+            var tokenResponse = await tokenClient.RequestClientCredentialsAsync(scope: scope);
 
             if (tokenResponse.IsError)
             {
@@ -86,7 +148,11 @@ namespace IdEpi.ConsoleApp
 
             Console.WriteLine("We got a token!");
 
-            // call api
+            // Lets store it in the local token member
+            _token = tokenResponse.AccessToken;
+
+            return;
+            // Call api
             var client = new HttpClient();
             client.SetBearerToken(tokenResponse.AccessToken);
 
@@ -105,31 +171,41 @@ namespace IdEpi.ConsoleApp
 
         private static async Task GetRoTokenAsync()
         {
-            // discover endpoints from metadata
-            var disco = await DiscoveryClient.GetAsync(authority);
+            // Get DiscoveryClient from IdentityServer using IdentityModel
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
+            {
+                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            };
+
+            DiscoveryResponse disco = await discoInstance.GetAsync();
+
             if (disco.IsError)
             {
                 Console.WriteLine(disco.Error);
                 return;
             }
 
-            // request token
-            var tokenClient = new TokenClient(disco.TokenEndpoint, "ro.client", clientSecret);
-            var tokenResponse = await tokenClient.RequestResourceOwnerPasswordAsync("alice", "pass", "api1 openid profile");
-            
+            // TokenClient from IdentityModel
+            var tokenClient = new TokenClient(address: disco.TokenEndpoint, clientId: "ro.client", clientSecret: clientSecret);
+            var tokenResponse = await tokenClient.RequestResourceOwnerPasswordAsync(
+                userName: "alice", password: "pass", scope: "api1 openid profile");
+
             if (tokenResponse.IsError)
             {
                 Console.WriteLine(tokenResponse.Error);
                 return;
             }
-                
-            Console.WriteLine("tokenResponse.Json");
-            Console.WriteLine(tokenResponse.Json);
-            Console.WriteLine("\n\n");
 
-            // userinfo for claims
-            var userInfo = new UserInfoClient(disco.UserInfoEndpoint);
-            var userInfoResponse = await userInfo.GetAsync(tokenResponse.AccessToken);
+
+            // Write the token type
+            Console.WriteLine("token_type: {0}{1}", tokenResponse.Json.Value<string>("token_type"), Environment.NewLine);
+
+            // store accesstoken
+            _token = tokenResponse.AccessToken;
+
+            // UserInfoClient for claims using IdentityModel
+            var userInfo = new UserInfoClient(endpoint: disco.UserInfoEndpoint);
+            var userInfoResponse = await userInfo.GetAsync(token: tokenResponse.AccessToken);
 
             if (!userInfoResponse.IsError)
             {
@@ -138,6 +214,7 @@ namespace IdEpi.ConsoleApp
                 Console.WriteLine("\n\n");
             }
 
+            return;
 
             // call api
             var client = new HttpClient();

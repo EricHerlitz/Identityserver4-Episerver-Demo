@@ -55,7 +55,7 @@ namespace IdEpi.Api
                 // Supporting reference tokens
                 .AddIdentityServerAuthentication(options =>
                 {
-                    options.Authority = "http://localhost:5000";
+                    options.Authority = "http://10.11.12.13:5000";
                     options.RequireHttpsMetadata = false;
                     options.ApiName = "api1";
                     options.ApiSecret = "secret";
