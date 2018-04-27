@@ -10,26 +10,34 @@ using Microsoft.AspNetCore.Mvc;
 namespace IdEpi.Api.Controllers
 {
     [Route("[controller]")]
-    [Authorize]
+    //[Authorize()]
     public class IdentityController : ControllerBase
     {
-        const string authority = "http://10.11.12.13:5000";
 
         [HttpGet]
+        [Route("GetUserClaims")]
         //[Authorize(Roles = "WebEditors")]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> GetUserClaims()
         {
-            Console.WriteLine("User Claims");
-            User.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
-            Console.WriteLine(Environment.NewLine);
+            Console.WriteLine("Returning registered user claims");
 
             var claimsValues = User.Claims.Select(claim => new
             {
                 claim.Type,
                 claim.Value
             });
+            
+            return new JsonResult(value: claimsValues);
+        }
 
-            DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
+        [HttpGet]
+        [Route("GetUserClaimsDisco")]
+        [Authorize(Roles = "WebEditors")]
+        public async Task<IActionResult> GetUserClaimsDisco()
+        {
+            Console.WriteLine("Fetching claims from IdentityServer using DiscoveryClient");
+
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: Startup.Authority)
             {
                 Policy = new DiscoveryPolicy { RequireHttps = false } // For development
             };
@@ -37,27 +45,16 @@ namespace IdEpi.Api.Controllers
             DiscoveryResponse disco = await discoInstance.GetAsync();
 
             var accessToken = await HttpContext.GetTokenAsync(tokenName: "access_token");
+            var userInfo = new UserInfoClient(endpoint: disco.UserInfoEndpoint);
+            var userInfoResponse = await userInfo.GetAsync(token: accessToken);
 
-
-            var userInfo = new UserInfoClient(disco.UserInfoEndpoint);
-            var userInfoResponse = await userInfo.GetAsync(accessToken);
-
-            if (!userInfoResponse.IsError)
-            {
-                Console.WriteLine("Claims for the user");
-                Console.WriteLine(userInfoResponse.Json.ToString());
-                //userInfoResponse.Claims.ToList().ForEach(claim => Console.WriteLine("{0}: {1}", claim.Type, claim.Value));
-                Console.WriteLine("\n\n");
-            }
-            else
+            if (userInfoResponse.IsError)
             {
                 Console.WriteLine("userInfoResponse.IsError");
+                throw userInfoResponse.Exception;
             }
 
-
-            // from c in User.Claims select new { c.Type, c.Value }
-            //return new JsonResult(claimsValues);
-            return new JsonResult(userInfoResponse.Json.ToString());
+            return new JsonResult(value: userInfoResponse.Json.ToString());
         }
     }
 }

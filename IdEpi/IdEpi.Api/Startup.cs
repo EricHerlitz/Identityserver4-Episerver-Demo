@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using IdentityServer4.AccessTokenValidation;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -26,77 +27,34 @@ namespace IdEpi.Api
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        public const string Authority = "http://10.11.12.13:5000";
+
         public void ConfigureServices(IServiceCollection services)
         {
-            //services.AddMvc();
-
             services.AddMvcCore(options =>
                 {
-                    // require scope1 or scope2
-                    var policy = ScopePolicy.Create("api1", "openid");
+                    var policy = ScopePolicy.Create("api1", "openid"); // "api1", "openid", "offline_access"
                     options.Filters.Add(new AuthorizeFilter(policy));
                 })
                 .AddAuthorization()
                 .AddJsonFormatters();
 
-            //JwtBearerDefaults.AuthenticationScheme
+            // https://github.com/IdentityServer/IdentityServer4.AccessTokenValidation
             // id services
-            services.AddAuthentication(IdentityServerAuthenticationDefaults.AuthenticationScheme) //"Bearer"
-                //.AddJwtBearer(options =>
-                //{
-                //    // http://docs.identityserver.io/en/release/topics/apis.html
-                //    // base-address of your identityserver
-                //    options.Authority = "http://localhost:5000";
-
-                //    // name of the API resource
-                //    options.Audience = "api1";
-                //})
+            services.AddAuthentication(IdentityServerAuthenticationDefaults.AuthenticationScheme) 
                 // Supporting reference tokens
+                //IdentityServerAuthenticationOptions
                 .AddIdentityServerAuthentication(options =>
                 {
-                    options.Authority = "http://10.11.12.13:5000";
+                    options.Authority = Authority;
+                    options.SupportedTokens = SupportedTokens.Both; // jwt and reference
+                    options.LegacyAudienceValidation = true; // if you need to support both JWTs and reference token
                     options.RequireHttpsMetadata = false;
                     options.ApiName = "api1";
                     options.ApiSecret = "secret";
+                    options.RoleClaimType = ClaimTypes.Role; // override standard JwtClaimTypes.Role
                     options.EnableCaching = false;
                 });
-            //services.AddAuthentication(options =>
-            //    {
-            //        options.DefaultScheme = IdentityServerAuthenticationDefaults.AuthenticationScheme; // "Bearer"
-            //        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme; // OpenIdConnectDefaults.AuthenticationScheme
-            //    }) //"Bearer"
-            //    .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
-            //    {
-            //        options.SignInScheme = "Cookies";
-
-            //        options.Authority = "http://localhost:5000";
-            //        options.RequireHttpsMetadata = false;
-
-
-            //        options.ClientId = "webclient";
-            //        options.ClientSecret = "secret";
-            //        options.ResponseType = "code id_token"; // Hybrid flow
-            //        options.GetClaimsFromUserInfoEndpoint = true;
-            //        options.SaveTokens = true;
-
-            //        options.Scope.Add("api1");
-            //        //options.Scope.Add("openid");
-            //        options.Scope.Add("offline_access");
-            //    });
-            //.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
-            //{
-            //    options.SignInScheme = "Cookies";
-
-            //    options.Authority = "http://localhost:5000";
-            //    options.RequireHttpsMetadata = false;
-
-            //    options.ClientId = "webclient";
-            //    options.ClientSecret = "secret";
-            //    options.ResponseType = "code id_token";
-            //    options.GetClaimsFromUserInfoEndpoint = true;
-            //    options.SaveTokens = true;
-            //});
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

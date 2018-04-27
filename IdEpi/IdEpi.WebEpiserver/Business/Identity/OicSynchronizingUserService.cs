@@ -14,9 +14,6 @@ namespace IdEpi.WebEpiserver.Business.Identity
     {
         public Task SynchronizeAsync(ClaimsIdentity identity, IEnumerable<string> additionalClaimsToSync)
         {
-            Console.WriteLine("-------------");
-            Console.WriteLine("SynchronizeAsync");
-            Console.WriteLine("-------------");
             // Do claim transforms here
             return Task.FromResult(0);
         }

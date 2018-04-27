@@ -12,32 +12,23 @@ namespace IdEpi.IdentityServer
 {
     public class Config
     {
+
+        private static readonly Secret _secret = new Secret("secret".Sha256());
+
         public static IEnumerable<ApiResource> GetApis()
         {
             return new ApiResource[]
             {
-                //new ApiResource()
-                //{
-                //    Name = "api1",
-                //    DisplayName = "My API",
-                //    Scopes =
-                //    {
-                //        new Scope
-                //        {
-                //            Name = "api1",
-                //            DisplayName = "My API",
-                //        },
-                //    }
-                //},
+                new ApiResource("ConsoleApi", "Console API"),
                 new ApiResource("api1", "My API")
                 {
+                    ApiSecrets = { _secret },
+                    // Include the following using claims in JWT Access Tokens (in addition to subject id)
                     UserClaims =
                     {
-                        JwtClaimTypes.Role,
-                        JwtClaimTypes.Email,
-                        ClaimTypes.Country,
-                        ClaimTypes.Role
-                    }
+                        ClaimTypes.Role,
+                    },
+
                 },
             };
         }
@@ -48,30 +39,20 @@ namespace IdEpi.IdentityServer
             {
                 new IdentityResources.OpenId()
                 {
+                    // The claims here is included in UserInfoClient requests 
                     // https://msdn.microsoft.com/en-us/library/microsoft.identitymodel.claims.claimtypes_members.aspx
                     UserClaims =
                     {
-                        JwtClaimTypes.PreferredUserName,
-                        JwtClaimTypes.Role,
-                        JwtClaimTypes.Email,
-                        ClaimTypes.Upn, // username
-                        ClaimTypes.Country,
-                        ClaimTypes.GroupSid,
+                        //JwtClaimTypes.PreferredUserName,
+                        //JwtClaimTypes.Role,
+                        //JwtClaimTypes.Email,
+                        //ClaimTypes.Upn, // username
+                        //ClaimTypes.Country,
+                        //ClaimTypes.GroupSid,
                         ClaimTypes.Role
                     }
                 },
                 new IdentityResources.Profile(),
-                new IdentityResources.Email(),
-                new IdentityResource
-                {
-                    Name = JwtClaimTypes.Role,
-                    DisplayName = "Role",
-                    Description = "Allow the service access to your user roles.",
-                    UserClaims = new[] { JwtClaimTypes.Role, ClaimTypes.Role },
-                    ShowInDiscoveryDocument = true,
-                    Required = true,
-                    Emphasize = true
-                }
             };
         }
 
@@ -83,60 +64,106 @@ namespace IdEpi.IdentityServer
         {
             return new Client[]
             {
+                // simple client
                 new Client
                 {
                     ClientId = "client",
-                    //ClientName = "Console App",
                     AllowedGrantTypes = GrantTypes.ClientCredentials,
-                    ClientSecrets = new List<Secret> { new Secret("secret".Sha256()) },
-                    AllowedScopes = new List<string> { "api1" }
+                    ClientSecrets = new List<Secret> { _secret },
+                    AllowedScopes = new List<string> { "ConsoleApi" , "api1" } // api1 IdentityServerConstants.StandardScopes.OpenId, 
                 },
                 // resource owner password grant client
                 new Client
                 {
                     ClientId = "ro.client",
-                    //ClientName = "Console App",
                     AllowedGrantTypes = GrantTypes.ResourceOwnerPasswordAndClientCredentials,
-                    ClientSecrets = new List<Secret> { new Secret("secret".Sha256()) },
-                    //AlwaysSendClientClaims = true,
-                    //AlwaysIncludeUserClaimsInIdToken = true,
+                    ClientSecrets = new List<Secret> { _secret },
+                    AccessTokenType = AccessTokenType.Jwt,
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
-                        IdentityServerConstants.StandardScopes.Profile,
-                        "api1"
+                        //IdentityServerConstants.StandardScopes.Profile,
+                        "api1" // we need the api-name here as IdentityServerAuthentication use it for ref tokens
                     }
                 },
+                // resource owner password grant client with reference tokens
+                new Client
+                {
+                    ClientId = "ro.client.reference",
+                    AllowedGrantTypes = GrantTypes.ResourceOwnerPasswordAndClientCredentials,
+                    ClientSecrets = new List<Secret> { _secret },
+                    AccessTokenType = AccessTokenType.Reference,
+                    //AllowOfflineAccess = true, // activate refreshtoken
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        "api1", // we need the api-name here as IdentityServerAuthentication use it for ref tokens
+                        //"offline_access"
+                    }
+                },
+                // HybridAndClientCredentials client for web applications
                 new Client
                 {
                     ClientId = "webclient",
                     ClientName = "Web Client",
-                    ClientSecrets = new List<Secret> { new Secret("secret".Sha256()) },
-                    //ClientUri = "http://localhost:5020",
+                    ClientSecrets = new List<Secret> { _secret },
+                    //ClientUri = "http://10.11.12.13:5000",
+
+                    // FrontChannelLogoutUri for single signout
+                    FrontChannelLogoutUri = "http://10.11.12.13:5020/signout-oidc",
                     RequireConsent = false,
+                    AccessTokenType = AccessTokenType.Reference, // disable for jwt token
                     AllowAccessTokensViaBrowser = true,
                     AlwaysIncludeUserClaimsInIdToken = true,
                     RedirectUris =
                     {
-                        "http://localhost:5020/signin-oidc",
-                        "http://localhost:5030/",
-                        "http://localhost:5030/episerver",
-                        "http://localhost:5030/login",
+                        "http://10.11.12.13:5020/signin-oidc",
                     },
                     PostLogoutRedirectUris =
                     {
-                        "http://localhost:5020/signout-callback-oidc",
-                        "http://localhost:5030/"
+                        "http://10.11.12.13:5020/signout-callback-oidc",
                     },
                     AllowedGrantTypes = GrantTypes.HybridAndClientCredentials,
                     AllowedScopes =
                     {
-                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.OpenId, // OpenID Connect requests MUST contain the openid scope value
                         IdentityServerConstants.StandardScopes.Profile,
-                        IdentityServerConstants.StandardScopes.Email,
-                        IdentityServerConstants.StandardScopes.OfflineAccess,
-                        JwtClaimTypes.Role,
-                        "api1"
+                        "api1",
+                    },
+                    // offline_access scope - this allows requesting refresh tokens for long lived API access
+                    AllowOfflineAccess = true,
+                    AlwaysSendClientClaims = true
+                },
+                // HybridAndClientCredentials client for web applications
+                new Client
+                {
+                    ClientId = "epiclient",
+                    ClientName = "Epi Client",
+                    ClientSecrets = new List<Secret> { _secret },
+                    //ClientUri = "http://10.11.12.13:5000",
+
+                    // FrontChannelLogoutUri for single signout
+                    FrontChannelLogoutUri = "http://10.11.12.13:5030/signout-oidc",
+                    RequireConsent = false,
+                    AccessTokenType = AccessTokenType.Reference, // disable for jwt token
+                    AllowAccessTokensViaBrowser = true,
+                    AlwaysIncludeUserClaimsInIdToken = true,
+                    RedirectUris =
+                    {
+                        "http://10.11.12.13:5030/",
+                        "http://10.11.12.13:5030/episerver",
+                        "http://10.11.12.13:5030/login",
+                    },
+                    PostLogoutRedirectUris =
+                    {
+                        "http://10.11.12.13:5030/signout-callback-oidc",
+                    },
+                    AllowedGrantTypes = GrantTypes.HybridAndClientCredentials,
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId, // OpenID Connect requests MUST contain the openid scope value
+                        IdentityServerConstants.StandardScopes.Profile,
+                        "api1",
                     },
                     // offline_access scope - this allows requesting refresh tokens for long lived API access
                     AllowOfflineAccess = true,
@@ -151,7 +178,7 @@ namespace IdEpi.IdentityServer
             {
                 new TestUser
                 {
-                    SubjectId = "Alice Alice",
+                    SubjectId = "Alice Minion",
                     Username = "alice",
                     Password = "pass",
                     Claims =
@@ -162,10 +189,10 @@ namespace IdEpi.IdentityServer
                         new Claim(JwtClaimTypes.Name, "alice"),
                         new Claim(JwtClaimTypes.Email, "alice@gmail.com"),
                         new Claim(JwtClaimTypes.EmailVerified, "true", ClaimValueTypes.Boolean),
-                        //new Claim(JwtClaimTypes.Role, "WebEditors, WebAdmins"),
                         new Claim(ClaimTypes.Role, "WebEditors"),
                         new Claim(ClaimTypes.Role, "WebAdmins"),
-                        new Claim(JwtClaimTypes.WebSite, "https://alice.se")
+                        new Claim(JwtClaimTypes.WebSite, "https://alice.se"),
+                        //new Claim(JwtClaimTypes.Role, "WebEditors"), // For api
                     },
                 },
                 new TestUser

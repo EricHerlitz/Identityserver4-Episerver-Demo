@@ -9,6 +9,8 @@ namespace IdEpi.WebClient
 {
     public class Startup
     {
+        public static string Authority = "http://10.11.12.13:5000";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -28,10 +30,8 @@ namespace IdEpi.WebClient
                 .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
                 {
                     options.SignInScheme = "Cookies";
-
-                    options.Authority = "http://localhost:5000";
+                    options.Authority = Authority;
                     options.RequireHttpsMetadata = false;
-                    
                     options.ClientId = "webclient";
                     options.ClientSecret = "secret";
                     options.ResponseType = "code id_token"; // Hybrid flow
@@ -40,8 +40,6 @@ namespace IdEpi.WebClient
 
                     options.Scope.Add("api1");
                     //options.Scope.Add("openid");
-                    options.Scope.Add("offline_access");
-                    //options.Events = new OpenIdConnectEvents { };
                 });
         }
 

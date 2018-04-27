@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace IdEpi.IdentityServer
     {
         public static void Main(string[] args)
         {
-            Console.Title = "IdentityServer";
+            Console.Title = $"IdentityServer {Process.GetCurrentProcess().Id}";
             BuildWebHost(args).Run();
         }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace IdEpi.Api
     {
         public static void Main(string[] args)
         {
-            Console.Title = "API";
+            Console.Title = $"API {Process.GetCurrentProcess().Id}";
             BuildWebHost(args).Run();
         }
 

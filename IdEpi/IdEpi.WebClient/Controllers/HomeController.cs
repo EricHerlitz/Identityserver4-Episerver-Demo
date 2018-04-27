@@ -33,7 +33,14 @@ namespace IdEpi.WebClient.Controllers
             //var client = new HttpClient();
             //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var disco = await DiscoveryClient.GetAsync("http://localhost:5000");
+            // Get DiscoveryClient from IdentityServer using IdentityModel
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: Startup.Authority)
+            {
+                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            };
+
+            DiscoveryResponse disco = await discoInstance.GetAsync();
+
             var userInfo = new UserInfoClient(disco.UserInfoEndpoint);
             var userInfoResponse = await userInfo.GetAsync(accessToken);
 
@@ -82,7 +89,7 @@ namespace IdEpi.WebClient.Controllers
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
 
-            var response = await client.GetAsync("http://localhost:5010/identity");
+            var response = await client.GetAsync("http://10.11.12.13:5010/identity/GetUserClaims");
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("response.StatusCode");

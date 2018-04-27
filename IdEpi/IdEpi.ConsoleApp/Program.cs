@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -15,9 +16,8 @@ namespace IdEpi.ConsoleApp
     {
         const string authority = "http://10.11.12.13:5000";
         const string clientSecret = "secret";
-        const string scope = "api1";
         const string apiUrl = "http://10.11.12.13:5010/identity";
-        private static string _token = null;
+        private static TokenResponse _token = null;
 
 
         static void Main(string[] args) => MainAsync().GetAwaiter().GetResult();
@@ -33,8 +33,12 @@ namespace IdEpi.ConsoleApp
             Console.WriteLine("===========================");
             Console.WriteLine("1: Get Token");
             Console.WriteLine("2: Get Resource Owner token");
-            Console.WriteLine("3: Use existing token with Web API");
+            Console.WriteLine("3: Get Resource Owner reference token");
             Console.WriteLine("4: Print stored token");
+            Console.WriteLine("5: Decode JWT");
+            Console.WriteLine("6: Print token claims with UserInfoClient ");
+            Console.WriteLine("7: Web API - Test existing token");
+            Console.WriteLine("8: Web API - Test existing token with UserInfoClient");
             Console.WriteLine("9: Exit");
             Console.WriteLine("===========================");
             Console.WriteLine();
@@ -44,24 +48,51 @@ namespace IdEpi.ConsoleApp
             switch (key.KeyChar.ToString())
             {
                 case "1":
-                    await GetTokenAsync();
+                    await GetTokenAsync(scopes: "ConsoleApi");
                     break;
 
                 case "2":
-                    await GetRoTokenAsync();
+                    await GetRoTokenAsync(clientId: "ro.client", scopes: "api1 openid");
                     break;
 
                 case "3":
-                    await UseTokenWithWebApiAsync();
+                    await GetRoTokenAsync(clientId: "ro.client.reference", scopes: "api1 openid"); // offline_access
                     break;
 
                 case "4":
-                    Console.WriteLine(string.IsNullOrEmpty(_token) ? "No token in store" : _token);
+                    if (_token == null)
+                    {
+                        Console.WriteLine("Token store empty");
+                    }
+                    else
+                    {
+                        Console.WriteLine("TokenType: {0}", _token.TokenType);
+                        Console.WriteLine("AccessToken: {0}", _token.AccessToken);
+                        Console.WriteLine("RefreshToken: {0}", _token.RefreshToken);
+                        Console.WriteLine("IdentityToken: {0}", _token.IdentityToken);
+                    }
+                    break;
+
+                case "5":
+                    DecodeJwtToken();
+                    break;
+
+                case "6":
+                    await PrintClaimsUserInfoClient();
+                    break;
+
+                case "7":
+                    await UseTokenWithWebApiAsync(action: "GetUserClaims");
+                    break;
+
+                case "8":
+                    await UseTokenWithWebApiAsync(action: "GetUserClaimsDisco");
                     break;
 
                 case "9":
-                default:
                     return;
+                default:
+                    break;
             }
 
             Console.WriteLine();
@@ -79,32 +110,32 @@ namespace IdEpi.ConsoleApp
         /// This uses a HttpClient
         /// </summary>
         /// <returns></returns>
-        private static async Task UseTokenWithWebApiAsync()
+        private static async Task UseTokenWithWebApiAsync(string action)
         {
-            if (string.IsNullOrEmpty(_token))
+            string accessToken = String.Empty; ;
+
+            if (_token == null)
             {
-                Console.WriteLine("Enter token: ");
-                _token = Console.ReadLine();
+                Console.WriteLine("No token in store");
             }
             else
             {
                 Console.WriteLine("Enter token or press enter to use existing: ");
                 var readLineToken = Console.ReadLine();
-                _token = string.IsNullOrEmpty(readLineToken) ? _token : readLineToken;
+                accessToken = string.IsNullOrEmpty(readLineToken) ? _token.AccessToken : readLineToken;
             }
 
-            if (!string.IsNullOrEmpty(_token))
+            if (!string.IsNullOrEmpty(accessToken))
             {
                 var client = new HttpClient();
-                client.SetBearerToken(_token);
+                client.SetBearerToken(accessToken);
 
                 // Get response from Web API
-                var response = await client.GetAsync(apiUrl);
+                var response = await client.GetAsync(requestUri: $"{apiUrl}/{action}");
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("response.StatusCode");
-                    Console.WriteLine(response.StatusCode);
+                    Console.WriteLine("Request returned statuscode {0}", response.StatusCode);
                 }
                 else
                 {
@@ -114,13 +145,13 @@ namespace IdEpi.ConsoleApp
             }
             else
             {
-                Console.WriteLine("No token entered");
+                Console.WriteLine("No token available");
             }
 
         }
 
 
-        private static async Task GetTokenAsync()
+        private static async Task GetTokenAsync(string scopes)
         {
             // Get DiscoveryClient from IdentityServer using IdentityModel
             DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
@@ -138,7 +169,7 @@ namespace IdEpi.ConsoleApp
 
             // TokenClient from IdentityModel
             var tokenClient = new TokenClient(address: disco.TokenEndpoint, clientId: "client", clientSecret: clientSecret);
-            var tokenResponse = await tokenClient.RequestClientCredentialsAsync(scope: scope);
+            var tokenResponse = await tokenClient.RequestClientCredentialsAsync(scopes);
 
             if (tokenResponse.IsError)
             {
@@ -149,27 +180,11 @@ namespace IdEpi.ConsoleApp
             Console.WriteLine("We got a token!");
 
             // Lets store it in the local token member
-            _token = tokenResponse.AccessToken;
-
-            return;
-            // Call api
-            var client = new HttpClient();
-            client.SetBearerToken(tokenResponse.AccessToken);
-
-            var response = await client.GetAsync(apiUrl);
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine(response.StatusCode);
-            }
-            else
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(JArray.Parse(content));
-            }
+            _token = tokenResponse;
         }
 
 
-        private static async Task GetRoTokenAsync()
+        private static async Task GetRoTokenAsync(string clientId, string scopes)
         {
             // Get DiscoveryClient from IdentityServer using IdentityModel
             DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
@@ -186,9 +201,10 @@ namespace IdEpi.ConsoleApp
             }
 
             // TokenClient from IdentityModel
-            var tokenClient = new TokenClient(address: disco.TokenEndpoint, clientId: "ro.client", clientSecret: clientSecret);
+            var tokenClient = new TokenClient(address: disco.TokenEndpoint, clientId: clientId, clientSecret: clientSecret);
             var tokenResponse = await tokenClient.RequestResourceOwnerPasswordAsync(
-                userName: "alice", password: "pass", scope: "api1 openid profile");
+                userName: "alice", password: "pass", scope: scopes); // api1 openid profile
+            // scope here must somehow match what is in the identity resources of ids4
 
             if (tokenResponse.IsError)
             {
@@ -201,11 +217,29 @@ namespace IdEpi.ConsoleApp
             Console.WriteLine("token_type: {0}{1}", tokenResponse.Json.Value<string>("token_type"), Environment.NewLine);
 
             // store accesstoken
-            _token = tokenResponse.AccessToken;
+            _token = tokenResponse;
+        }
+
+
+        private static async Task PrintClaimsUserInfoClient()
+        {
+            // Get DiscoveryClient from IdentityServer using IdentityModel
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
+            {
+                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            };
+
+            DiscoveryResponse disco = await discoInstance.GetAsync();
+
+            if (disco.IsError)
+            {
+                Console.WriteLine(disco.Error);
+                return;
+            }
 
             // UserInfoClient for claims using IdentityModel
             var userInfo = new UserInfoClient(endpoint: disco.UserInfoEndpoint);
-            var userInfoResponse = await userInfo.GetAsync(token: tokenResponse.AccessToken);
+            var userInfoResponse = await userInfo.GetAsync(token: _token.AccessToken);
 
             if (!userInfoResponse.IsError)
             {
@@ -213,29 +247,34 @@ namespace IdEpi.ConsoleApp
                 userInfoResponse.Claims.ToList().ForEach(claim => Console.WriteLine("{0}: {1}", claim.Type, claim.Value));
                 Console.WriteLine("\n\n");
             }
+        }
 
-            return;
-
-            // call api
-            var client = new HttpClient();
-            client.SetBearerToken(tokenResponse.AccessToken);
-
-            var response = await client.GetAsync(apiUrl);
-            if (!response.IsSuccessStatusCode)
+        private static void DecodeJwtToken()
+        {
+            if (_token == null)
             {
-                Console.WriteLine("response.StatusCode");
-                Console.WriteLine(response.StatusCode);
+                Console.WriteLine("No token in store");
+                return;
             }
-            else
-            {
-                var content = response.Content.ReadAsStringAsync().Result;
-                Console.WriteLine("API response.Content");
-                Console.WriteLine(content);
 
-                var a = JsonConvert.DeserializeObject<object>(content);
-                Console.WriteLine(a);
-                //Console.WriteLine(JArray.Parse(content));
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                if (handler.CanReadToken(token: _token.AccessToken))
+                {
+                    JwtSecurityToken jwt = handler.ReadJwtToken(token: _token.AccessToken);
+                    jwt.Claims.ToList().ForEach(claim => Console.WriteLine("{0}: {1}", claim.Type, claim.Value));
+                }
+                else
+                {
+                    Console.WriteLine("Malformed JWT Token");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
+
     }
 }

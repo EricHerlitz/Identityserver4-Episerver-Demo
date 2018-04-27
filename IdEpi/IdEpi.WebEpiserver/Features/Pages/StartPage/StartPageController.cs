@@ -1,11 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using System.Web;
 using System.Web.Mvc;
 using EPiServer;
 using EPiServer.Core;
 using EPiServer.Framework.DataAnnotations;
 using EPiServer.Web.Mvc;
+using IdentityModel.Client;
+using Microsoft.Owin.Security;
 
 namespace IdEpi.WebEpiserver.Features.Pages.Start
 {
@@ -19,13 +27,36 @@ namespace IdEpi.WebEpiserver.Features.Pages.Start
         }
 
         //[Authorize]
-        public ActionResult Index(StartPage currentPage)
+        public async Task<ActionResult> Index(StartPage currentPage)
         {
             List<Claim> claims = null;
             if (User.Identity.IsAuthenticated)
             {
-                ClaimsIdentity identity = (ClaimsIdentity)User.Identity;
-                claims = identity.Claims.ToList();
+                var user = User as ClaimsPrincipal;
+
+                //var claimsPrincipalUser = (ClaimsPrincipal)User;
+                //var jwtToken = claimsPrincipalUser.Identities.First().BootstrapContext;
+
+                // call api
+                var client = new HttpClient();
+                //client.SetBearerToken(accessToken); // if IdentityModel is installed
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.FindFirst("access_token").Value);
+
+                var response = await client.GetAsync("http://10.11.12.13:5010/identity/GetUserClaims");
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("response.StatusCode");
+                    Console.WriteLine(response.StatusCode);
+                }
+                else
+                {
+                    var content = response.Content.ReadAsStringAsync().Result;
+                    Console.WriteLine("API response.Content");
+                    Console.WriteLine(content);
+                    ViewData["Content"] = content;
+                }
+
+
             }
 
             var viewModel = new StartPageViewModel(currentPage)
