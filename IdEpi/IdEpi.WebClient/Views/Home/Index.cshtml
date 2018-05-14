@@ -3,3 +3,8 @@
 }
 
 <h2>OpenID Connect MVC Client</h2>
+
+@if (!User.Identity.IsAuthenticated)
+{
+    <div>You are not logged in</div>
+}

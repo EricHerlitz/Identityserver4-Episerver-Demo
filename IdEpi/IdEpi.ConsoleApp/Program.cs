@@ -36,10 +36,11 @@ namespace IdEpi.ConsoleApp
             Console.WriteLine("3: Get Resource Owner reference token");
             Console.WriteLine("4: Print stored token");
             Console.WriteLine("5: Decode JWT");
-            Console.WriteLine("6: Print token claims with UserInfoClient ");
-            Console.WriteLine("7: Web API - Test existing token");
-            Console.WriteLine("8: Web API - Test existing token with UserInfoClient");
-            Console.WriteLine("9: Exit");
+            Console.WriteLine("6: Print claims with IntrospectionClient (via ApiResources)");
+            Console.WriteLine("7: Print claims with UserInfoClient (via IdentityResources)");
+            Console.WriteLine("8: Web API - Test existing token");
+            Console.WriteLine("9: Web API - Test existing token with UserInfoClient");
+            Console.WriteLine("0: Exit");
             Console.WriteLine("===========================");
             Console.WriteLine();
 
@@ -78,18 +79,22 @@ namespace IdEpi.ConsoleApp
                     break;
 
                 case "6":
-                    await PrintClaimsUserInfoClient();
+                    await PrintClaimsIntrospectionClient();
                     break;
 
                 case "7":
-                    await UseTokenWithWebApiAsync(action: "GetUserClaims");
+                    await PrintClaimsUserInfoClient();
                     break;
 
                 case "8":
+                    await UseTokenWithWebApiAsync(action: "GetUserClaims");
+                    break;
+                    
+                case "9":
                     await UseTokenWithWebApiAsync(action: "GetUserClaimsDisco");
                     break;
 
-                case "9":
+                case "0":
                     return;
                 default:
                     break;
@@ -150,7 +155,6 @@ namespace IdEpi.ConsoleApp
 
         }
 
-
         private static async Task GetTokenAsync(string scopes)
         {
             // Get DiscoveryClient from IdentityServer using IdentityModel
@@ -183,7 +187,6 @@ namespace IdEpi.ConsoleApp
             _token = tokenResponse;
         }
 
-
         private static async Task GetRoTokenAsync(string clientId, string scopes)
         {
             // Get DiscoveryClient from IdentityServer using IdentityModel
@@ -214,12 +217,40 @@ namespace IdEpi.ConsoleApp
 
 
             // Write the token type
-            Console.WriteLine("token_type: {0}{1}", tokenResponse.Json.Value<string>("token_type"), Environment.NewLine);
-
+            Console.WriteLine("Logged on using the {0}", clientId);
+            Console.WriteLine("token_type: {0}", tokenResponse.Json.Value<string>("token_type"));
+            Console.WriteLine("Token length {0}{1}", tokenResponse.AccessToken.Length, Environment.NewLine);
             // store accesstoken
             _token = tokenResponse;
         }
 
+        private static async Task PrintClaimsIntrospectionClient()
+        {
+            // Get DiscoveryClient from IdentityServer using IdentityModel
+            DiscoveryClient discoInstance = new DiscoveryClient(authority: authority)
+            {
+                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            };
+
+            DiscoveryResponse disco = await discoInstance.GetAsync();
+
+            if (disco.IsError)
+            {
+                Console.WriteLine("Disco error {0}", disco.Error);
+                return;
+            }
+
+
+            var introspectionClient = new IntrospectionClient(endpoint: disco.IntrospectionEndpoint, clientId: "api1", clientSecret: clientSecret);
+            var response = await introspectionClient.SendAsync(new IntrospectionRequest { Token = _token.AccessToken });
+
+            if (!response.IsError)
+            {
+                Console.WriteLine("Claims for the user");
+                response.Claims.ToList().ForEach(claim => Console.WriteLine("{0}: {1}", claim.Type, claim.Value));
+                Console.WriteLine("\n\n");
+            }
+        }
 
         private static async Task PrintClaimsUserInfoClient()
         {

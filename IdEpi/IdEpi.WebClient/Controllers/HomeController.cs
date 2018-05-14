@@ -19,35 +19,32 @@ namespace IdEpi.WebClient.Controllers
         }
 
         [Authorize]
-        public async Task<IActionResult> Secure()
+        public IActionResult Secure()
         {
             ViewData["Message"] = "Secure page.";
 
-            Console.WriteLine("----------------------------");
+            //Console.WriteLine("----------------------------");
+            //Console.WriteLine("User Claims");
+            //User.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
 
-            Console.WriteLine("User Claims");
-            User.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
-
-            var accessToken = await HttpContext.GetTokenAsync(tokenName: "access_token");
 
             //var client = new HttpClient();
             //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            // Get DiscoveryClient from IdentityServer using IdentityModel
-            DiscoveryClient discoInstance = new DiscoveryClient(authority: Startup.Authority)
-            {
-                Policy = new DiscoveryPolicy { RequireHttps = false } // For development
-            };
 
-            DiscoveryResponse disco = await discoInstance.GetAsync();
-
-            var userInfo = new UserInfoClient(disco.UserInfoEndpoint);
-            var userInfoResponse = await userInfo.GetAsync(accessToken);
-
-            Console.WriteLine("userInfoResponse Claims");
-            userInfoResponse.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
-
-            Console.WriteLine("----------------------------");
+            // UserInfo request
+            //// Get DiscoveryClient from IdentityServer using IdentityModel
+            //DiscoveryClient discoInstance = new DiscoveryClient(authority: Startup.Authority)
+            //{
+            //    Policy = new DiscoveryPolicy { RequireHttps = false } // For development
+            //};
+            //DiscoveryResponse disco = await discoInstance.GetAsync();
+            //var userInfo = new UserInfoClient(disco.UserInfoEndpoint);
+            //var accessToken = await HttpContext.GetTokenAsync(tokenName: "access_token");
+            //var userInfoResponse = await userInfo.GetAsync(accessToken);
+            //Console.WriteLine("userInfoResponse Claims");
+            //userInfoResponse.Claims.ToList().ForEach(claim => Console.WriteLine("{0} {1}", claim.Type, claim.Value));
+            //Console.WriteLine("----------------------------");
 
             return View();
         }

@@ -15,6 +15,10 @@ namespace IdEpi.IdentityServer
 
         private static readonly Secret _secret = new Secret("secret".Sha256());
 
+        /// <summary>
+        /// Resources for Token client and Introspect client requests
+        /// </summary>
+        /// <returns></returns>
         public static IEnumerable<ApiResource> GetApis()
         {
             return new ApiResource[]
@@ -27,9 +31,9 @@ namespace IdEpi.IdentityServer
                     UserClaims =
                     {
                         ClaimTypes.Role,
+                        //ClaimTypes.Country,
                         //JwtClaimTypes.Email,
                     },
-
                 },
                 new ApiResource
                 {
@@ -45,6 +49,10 @@ namespace IdEpi.IdentityServer
             };
         }
 
+        /// <summary>
+        /// Resources for UserInfoClient requests
+        /// </summary>
+        /// <returns></returns>
         public static IEnumerable<IdentityResource> GetIdentityResources()
         {
             return new IdentityResource[]
@@ -69,7 +77,7 @@ namespace IdEpi.IdentityServer
         }
 
         /// <summary>
-        /// The clients are the applications and clients allowed to use the STS
+        /// Registered clients/applications that can request tokens
         /// </summary>
         /// <returns></returns>
         public static IEnumerable<Client> GetClients()
@@ -152,7 +160,6 @@ namespace IdEpi.IdentityServer
                     ClientId = "epiclient",
                     ClientName = "Epi Client",
                     ClientSecrets = new List<Secret> { _secret },
-                    //ClientUri = "http://10.11.12.13:5000",
 
                     // FrontChannelLogoutUri for single signout
                     FrontChannelLogoutUri = "http://10.11.12.13:5030/signout-oidc",
@@ -189,6 +196,10 @@ namespace IdEpi.IdentityServer
 
         }
 
+        /// <summary>
+        /// Repository for test users
+        /// </summary>
+        /// <returns></returns>
         public static List<TestUser> GetUsers()
         {
             return new List<TestUser>
@@ -217,18 +228,6 @@ namespace IdEpi.IdentityServer
                     Username = "bob",
                     Password = "pass"
                 }
-            };
-        }
-
-        public static IEnumerable<string> GetScopes()
-        {
-            return new[]
-            {
-                IdentityServerConstants.StandardScopes.OpenId,
-                IdentityServerConstants.StandardScopes.Profile,
-                IdentityServerConstants.StandardScopes.Email,
-                IdentityServerConstants.StandardScopes.Address,
-                IdentityServerConstants.StandardScopes.OfflineAccess
             };
         }
 

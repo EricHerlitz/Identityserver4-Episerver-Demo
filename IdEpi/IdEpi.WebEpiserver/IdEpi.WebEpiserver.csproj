@@ -292,6 +292,7 @@
     <Compile Include="Business\Initialization\SiteInitialization.cs" />
     <Compile Include="Business\Owin\Startup.cs" />
     <Compile Include="Business\Rendering\SiteViewEngine.cs" />
+    <Compile Include="Business\Warmup.cs" />
     <Compile Include="Controllers\TokenController.cs" />
     <Compile Include="Features\Pages\StartPage\StartPage.cs" />
     <Compile Include="Features\Pages\StartPage\StartPageController.cs" />
@@ -310,9 +311,9 @@
     <Folder Include="Models\Media\" />
     <Folder Include="Models\Pages\" />
     <Folder Include="Models\Properties\" />
-    <Folder Include="Static\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Static\styles.css" />
     <Content Include="Views\Web.config" />
     <Content Include="Global.asax" />
     <Content Include="Web.config" />

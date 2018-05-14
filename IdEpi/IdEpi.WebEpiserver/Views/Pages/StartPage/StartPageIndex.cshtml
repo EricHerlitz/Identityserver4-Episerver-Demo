@@ -6,32 +6,13 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Hello world!</h1>
-<p>@Model.TestProp</p>
+<h1>Hello world! (epi)</h1>
 
-
-@{
-
-    BootstrapContext context = ClaimsPrincipal.Current.Identities.First().BootstrapContext as BootstrapContext;
-
-    SecurityToken token;
-    if (context != null)
-    {
-        token = context.SecurityToken;
-    }
-    else
-    {
-        //var handlers = FederatedAuthentication.FederationConfiguration.IdentityConfiguration.SecurityTokenHandlers;
-        //token = handlers.ReadToken(new XmlTextReader(new StringReader(context.Token)));
-    }
-
-    var userPrincipal = (ClaimsPrincipal)HttpContext.Current.User;
-
-
-    <div>@userPrincipal.Identity.AuthenticationType</div>
-    <div>@HttpContext.Current.User.Identity.Name</div>
-    <div>token.Id</div>
+@if (!User.Identity.IsAuthenticated)
+{
+    <div>You are not logged in</div>
 }
+
 @if (Model.Claims != null)
 {
     <h2>Claims from context</h2>

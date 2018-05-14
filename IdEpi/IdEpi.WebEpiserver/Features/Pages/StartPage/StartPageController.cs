@@ -31,31 +31,34 @@ namespace IdEpi.WebEpiserver.Features.Pages.Start
         {
             List<Claim> claims = null;
 
-            // If logged in
+            // If logged in (Horrible code, don't use)
             if (User.Identity.IsAuthenticated)
             {
                 var user = User as ClaimsPrincipal;
 
-                // call api
-                var client = new HttpClient();
-                //client.SetBearerToken(accessToken); // if IdentityModel is installed
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.FindFirst("access_token").Value);
-                var response = await client.GetAsync("http://10.11.12.13:5010/identity/GetUserClaims");
-
-                if (!response.IsSuccessStatusCode)
+                if (user != null)
                 {
-                    // On error
-                    Console.WriteLine(response.StatusCode);
-                }
-                else
-                {
-                    var content = response.Content.ReadAsStringAsync().Result;
-                    Console.WriteLine("API response.Content");
-                    Console.WriteLine(content);
-                    ViewData["Content"] = content;
-                }
+                    claims = user.Claims.ToList();
 
+                    // call api
+                    var client = new HttpClient();
+                    //client.SetBearerToken(accessToken); // if IdentityModel is installed
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.FindFirst("access_token").Value);
+                    var response = await client.GetAsync("http://10.11.12.13:5010/identity/GetUserClaims");
 
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        // On error
+                        Console.WriteLine(response.StatusCode);
+                    }
+                    else
+                    {
+                        var content = response.Content.ReadAsStringAsync().Result;
+                        Console.WriteLine("API response.Content");
+                        Console.WriteLine(content);
+                        ViewData["Content"] = content;
+                    }
+                }
             }
 
             var viewModel = new StartPageViewModel(currentPage)
