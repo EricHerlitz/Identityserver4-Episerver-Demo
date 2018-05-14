@@ -27,9 +27,21 @@ namespace IdEpi.IdentityServer
                     UserClaims =
                     {
                         ClaimTypes.Role,
+                        //JwtClaimTypes.Email,
                     },
 
                 },
+                new ApiResource
+                {
+                    Name = "complicated_api",
+                    DisplayName = "Complicated Api",
+                    UserClaims = { "name", "email" }, // Always sent
+                    Scopes =
+                    {
+                        new Scope("full_access"){ UserClaims = { "role" } },
+                        new Scope("read_only")
+                    }
+                }
             };
         }
 
@@ -170,6 +182,11 @@ namespace IdEpi.IdentityServer
                     AlwaysSendClientClaims = true
                 },
             };
+
+            // WsFederation
+            // Microsoft.AspNetCore.Authentication.WsFederation
+            // https://github.com/IdentityServer/IdentityServer4.WsFederation
+
         }
 
         public static List<TestUser> GetUsers()
@@ -192,7 +209,6 @@ namespace IdEpi.IdentityServer
                         new Claim(ClaimTypes.Role, "WebEditors"),
                         new Claim(ClaimTypes.Role, "WebAdmins"),
                         new Claim(JwtClaimTypes.WebSite, "https://alice.se"),
-                        //new Claim(JwtClaimTypes.Role, "WebEditors"), // For api
                     },
                 },
                 new TestUser

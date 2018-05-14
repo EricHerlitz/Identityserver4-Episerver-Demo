@@ -30,22 +30,21 @@ namespace IdEpi.WebEpiserver.Features.Pages.Start
         public async Task<ActionResult> Index(StartPage currentPage)
         {
             List<Claim> claims = null;
+
+            // If logged in
             if (User.Identity.IsAuthenticated)
             {
                 var user = User as ClaimsPrincipal;
-
-                //var claimsPrincipalUser = (ClaimsPrincipal)User;
-                //var jwtToken = claimsPrincipalUser.Identities.First().BootstrapContext;
 
                 // call api
                 var client = new HttpClient();
                 //client.SetBearerToken(accessToken); // if IdentityModel is installed
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.FindFirst("access_token").Value);
-
                 var response = await client.GetAsync("http://10.11.12.13:5010/identity/GetUserClaims");
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("response.StatusCode");
+                    // On error
                     Console.WriteLine(response.StatusCode);
                 }
                 else

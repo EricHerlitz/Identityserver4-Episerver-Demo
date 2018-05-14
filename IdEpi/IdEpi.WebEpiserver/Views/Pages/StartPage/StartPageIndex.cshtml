@@ -45,6 +45,9 @@
     </dl>
 }
 
-<div>
-    @ViewData["Content"]
-</div>
+@if(ViewData["Content"] != null) { 
+    <h2>Data from web api</h2>
+    <div>
+        @ViewData["Content"]
+    </div>
+}
